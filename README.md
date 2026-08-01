@@ -6,7 +6,7 @@ deje de mostrar la pantalla de la "tortuga verde".
 
 Autor: **Luis Vides — Tec. en Ciberseguridad**
 
-## ⚠️ Antes de ejecutar
+## Antes de ejecutar
 
 - Ejecuta PowerShell **como Administrador**.
 - Se recomienda crear un **Punto de Restauración** antes de correr el script.
