@@ -1,0 +1,32 @@
+# Entorno QA local. NO usar en produccion.
+#   docker compose -f qa/docker-compose.yml up -d --build
+# Sitio+API+bootstrap:  http://localhost:8080
+
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: vbox
+      MARIADB_USER: vbox
+      MARIADB_PASSWORD: vboxpass
+    volumes:
+      - ../sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    volumes:
+      - ../public_html:/var/www/html:ro
+      - ./env.qa:/var/www/html/inc/.env:ro   # sobreescribe el .env de prod con el de QA
+      - ./cache:/var/www/html/cache          # cache escribible en QA

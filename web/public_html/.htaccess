@@ -1,0 +1,37 @@
+# =============================================================================
+# Quitar Tortuga VBox - configuracion Apache (Hostinger shared hosting)
+# =============================================================================
+
+# No listar directorios
+Options -Indexes
+
+# Forzar HTTPS (excepto tras proxy https o en localhost para QA)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteCond %{HTTP_HOST} !^localhost [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Cabeceras de seguridad
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set Content-Security-Policy "default-src 'self'; style-src 'self'; img-src 'self' data:; script-src 'none'; base-uri 'none'; form-action 'self'"
+    Header always set Strict-Transport-Security "max-age=15552000"
+</IfModule>
+
+# Bloquear archivos sensibles
+<FilesMatch "\.(env|ini|log|sql|md)$">
+    Require all denied
+</FilesMatch>
+
+# Bloquear la carpeta de configuracion/codigo interno (db.php, helpers.php, .env)
+RedirectMatch 403 ^/inc(/|$)
+
+# Servir el script de PowerShell como texto plano (para "iex")
+<FilesMatch "\.ps1$">
+    ForceType text/plain
+</FilesMatch>

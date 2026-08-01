@@ -1,0 +1,112 @@
+/* Quitar Tortuga VBox - estilos minimalistas. Un solo archivo, sin fuentes ni JS externo. */
+
+:root {
+    --bg: #0f1117;
+    --panel: #171a22;
+    --text: #e6e8ee;
+    --muted: #9aa0ad;
+    --accent: #2ecc71;
+    --border: #262a35;
+    --err: #e74c3c;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+}
+
+a { color: var(--accent); }
+
+.hero {
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+    background: linear-gradient(180deg, #12331f 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+}
+.hero.mini { padding: 1.5rem 1.25rem; }
+.hero h1 { margin: 0 0 .4rem; font-size: 1.7rem; }
+.hero .sub { margin: .2rem 0; color: var(--muted); }
+.hero .autor { margin: .6rem 0 1.2rem; font-size: .95rem; }
+
+.acciones { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+
+.btn {
+    display: inline-block;
+    padding: .6rem 1.1rem;
+    background: var(--accent);
+    color: #07130b;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+}
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+
+main { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+section { margin-top: 2rem; }
+h2 { border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+
+.tabla-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th, td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; }
+td.num, th:last-child { text-align: right; }
+
+.vacio, .nota { color: var(--muted); font-size: .9rem; }
+
+.comentarios { list-style: none; padding: 0; }
+.comentarios li {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .8rem 1rem;
+    margin-bottom: .7rem;
+}
+.comentarios .msg { margin: 0 0 .3rem; }
+.comentarios .firma { margin: 0; color: var(--muted); font-size: .85rem; }
+
+.form { display: flex; flex-direction: column; gap: .8rem; max-width: 560px; }
+.form label { display: flex; flex-direction: column; gap: .3rem; font-size: .9rem; color: var(--muted); }
+.form input, .form textarea {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .55rem .65rem;
+    font: inherit;
+}
+.form button {
+    align-self: flex-start;
+    background: var(--accent);
+    color: #07130b;
+    border: 0;
+    border-radius: 8px;
+    padding: .6rem 1.3rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.aviso { padding: .7rem 1rem; border-radius: 8px; margin: 1rem 0; }
+.aviso.ok { background: #123322; border: 1px solid var(--accent); }
+.aviso.err { background: #331717; border: 1px solid var(--err); }
+
+footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+/* Panel admin */
+.admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.admin-table th, .admin-table td { border: 1px solid var(--border); padding: .5rem; font-size: .88rem; vertical-align: top; }
+.admin-actions { display: flex; gap: .4rem; }
+.admin-actions button { padding: .3rem .7rem; border: 0; border-radius: 6px; cursor: pointer; }
+.btn-ok { background: var(--accent); color: #07130b; }
+.btn-del { background: var(--err); color: #fff; }
