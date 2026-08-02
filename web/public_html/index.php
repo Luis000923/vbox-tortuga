@@ -120,7 +120,7 @@ $comentarios = (array) $cache['comentarios'];
 <nav class="site-nav">
     <div class="wrap">
         <a class="brand" href="/index.php">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 2 4 5.5v6c0 4.6 3.2 8.6 8 10.5 4.8-1.9 8-5.9 8-10.5v-6L12 2Z"></path>
                 <path d="m9 12 2 2 4-4"></path>
             </svg>
@@ -152,7 +152,7 @@ $comentarios = (array) $cache['comentarios'];
                 <p class="autor">Creado y mantenido por <strong>Luis Vides</strong> — Tec. en Ciberseguridad</p>
                 <div class="acciones">
                     <a class="btn" href="/script.ps1" download>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M12 3v12"></path><path d="m7 12 5 5 5-5"></path><path d="M5 21h14"></path>
                         </svg>
                         Descargar el script
@@ -176,11 +176,11 @@ $comentarios = (array) $cache['comentarios'];
                                     id="btn-copiar"
                                     data-comando="irm https://vbox.pdsx.org | iex"
                                     aria-label="Copiar comando al portapapeles">
-                                <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <svg class="icon-copy" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                     <rect x="9" y="9" width="12" height="12" rx="2"></rect>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
-                                <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <svg class="icon-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                     <path d="m5 13 4 4L19 7"></path>
                                 </svg>
                                 <span class="btn-copy-txt">Copiar</span>
@@ -238,7 +238,7 @@ $comentarios = (array) $cache['comentarios'];
         <div class="wrap">
             <div class="trust">
                 <div class="trust-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="4" y="10" width="16" height="11" rx="2"></rect>
                         <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
                         <path d="M12 15v2"></path>
@@ -284,7 +284,7 @@ $comentarios = (array) $cache['comentarios'];
 
                 <article class="fase reinicio" role="listitem">
                     <span class="fase-num" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 12a9 9 0 1 1-2.6-6.4"></path>
                             <path d="M21 3v5h-5"></path>
                         </svg>
@@ -495,7 +495,7 @@ $comentarios = (array) $cache['comentarios'];
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="m5 13 4 4L19 7"></path>
     </svg>
     <span id="toast-texto">Comando copiado</span>
