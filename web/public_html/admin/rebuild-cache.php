@@ -34,7 +34,7 @@ $pdo = db();
 $devices = $pdo->query(
     'SELECT firma_hash, cpu, nucleos, hilos, ram_gb, placa, bios, gpu,
             windows_edicion, windows_version, windows_build, arquitectura,
-            estado, veces, ultima_fecha
+            virt_fw, slat, estado, veces, ultima_fecha
      FROM devices
      ORDER BY estado ASC, veces DESC, ultima_fecha DESC
      LIMIT 500'
