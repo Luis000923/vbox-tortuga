@@ -10,6 +10,8 @@
 #                            hardware a la API.
 #   2) Reportar "no funciona en esta maquina" -> recolecta un diagnostico del
 #                            porque fallo y lo envia a la API.
+#   3) Revertir cambios / Reactivar Hyper-V -> deshace la opcion 1 para quien
+#                            alterna VirtualBox con Docker Desktop/WSL2/Sandbox.
 #
 # FLUJO EN DOS FASES (opcion 1):
 #   FASE 1 -> Si BitLocker esta activo:
@@ -45,6 +47,7 @@ $SoporteDir     = "C:\SoporteVBox"
 $ClavesFile     = Join-Path $SoporteDir "ClavesRecuperacion-BitLocker.txt"   # SOLO LOCAL
 $InventarioFile = Join-Path $SoporteDir "Inventario.json"
 $ConsentFile    = Join-Path $SoporteDir "consentimiento.txt"                 # 1=acepto / 0=no
+$ApiLogFile     = Join-Path $SoporteDir "api-log.txt"                        # historial envios/errores API
 $TareaResume    = "QuitarTortuga-Resume"
 
 # --- API remota ---
@@ -85,6 +88,13 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 New-Item -ItemType Directory -Path $SoporteDir -Force | Out-Null
+
+# Windows PowerShell 5.1 a veces trae TLS 1.0/1.1 como protocolo por defecto en
+# .NET Framework; el POST a la API (HTTPS) falla en silencio contra servidores
+# que ya no aceptan esos protocolos. Forzamos TLS 1.2 antes de cualquier llamada.
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch {}
 
 
 #################################################################################################
@@ -193,6 +203,29 @@ function Esperar-Descifrado {
 
 
 #################################################################################################
+# VALIDACIONES DE HARDWARE
+#################################################################################################
+
+# Avisa en pantalla si VT-x/AMD-V esta apagado en BIOS/UEFI: aunque el script
+# desactive Hyper-V/VBS, VirtualBox seguira sin funcionar hasta habilitarlo ahi.
+function Test-VirtualizacionBIOS {
+    try {
+        $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
+        if ($cpu.VirtualizationFirmwareEnabled -eq $false) {
+            Write-Host ""
+            Write-Host "=================================================================" -ForegroundColor Red
+            Write-Host " ATENCION: la virtualizacion (Intel VT-x / AMD-V) esta DESACTIVADA" -ForegroundColor Red
+            Write-Host " en la BIOS/UEFI de este equipo." -ForegroundColor Red
+            Write-Host " Debes habilitarla ahi (a veces junto a 'SVM Mode') antes de" -ForegroundColor Red
+            Write-Host " continuar, o VirtualBox seguira sin funcionar aunque se" -ForegroundColor Red
+            Write-Host " desactive Hyper-V/VBS." -ForegroundColor Red
+            Write-Host "=================================================================" -ForegroundColor Red
+            Read-Host "Presiona ENTER para continuar de todas formas (o Ctrl+C para salir)"
+        }
+    } catch {}
+}
+
+#################################################################################################
 # FUNCION FASE 2: DESACTIVAR HYPER-V / VBS + INVENTARIO
 #################################################################################################
 
@@ -243,7 +276,9 @@ function Obtener-Inventario {
 #################################################################################################
 
 # Envia un objeto como JSON a un endpoint de la API con el header X-API-Key(osea X es variable osea nombre es represnetativo :3).
-# Un fallo de red NO rompe el flujo local (solo avisa).
+# Un fallo de red NO rompe el flujo local (solo avisa). Ademas de la consola,
+# deja rastro en $ApiLogFile: el equipo se reinicia a los 10s y la consola se
+# pierde, asi que sin log local un fallo de envio es indiagnosticable despues.
 function Send-Api {
     param([string]$Endpoint, $Payload)
 
@@ -254,12 +289,27 @@ function Send-Api {
     try {
         $json = $Payload | ConvertTo-Json -Depth 6
         $uri  = "$($ApiBaseUrl.TrimEnd('/'))/api/$Endpoint"
-        Invoke-RestMethod -Uri $uri -Method Post -Body $json `
-            -ContentType "application/json" `
+        # PowerShell 5.1 codifica -Body <string> con la pagina de codigos de la
+        # consola (CP1252/OEM en Windows en español), NO en UTF-8, sin importar
+        # lo que diga -ContentType. Si el inventario trae acentos o simbolos
+        # (R)/(TM) (comun en nombres de CPU/placa/BIOS), el body llega corrupto
+        # y json_decode() del servidor lo rechaza con 400. Se fuerza UTF-8
+        # convirtiendo el JSON a bytes antes de enviarlo.
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+        Invoke-RestMethod -Uri $uri -Method Post -Body $bytes `
+            -ContentType "application/json; charset=utf-8" `
             -Headers @{ "X-API-Key" = $ApiKey } -TimeoutSec 20 | Out-Null
         Write-Host "Enviado a la API: $Endpoint" -ForegroundColor Green
+        "$(Get-Date -Format s)  OK    $Endpoint" | Out-File $ApiLogFile -Append -Encoding UTF8
     } catch {
-        Write-Host "No se pudo enviar a la API ($Endpoint): $($_.Exception.Message)" -ForegroundColor Yellow
+        $status = $null
+        if ($_.Exception.Response) {
+            try { $status = [int]$_.Exception.Response.StatusCode } catch {}
+        }
+        $detalle = if ($status) { "HTTP $status - $($_.Exception.Message)" } else { $_.Exception.Message }
+        Write-Host "No se pudo enviar a la API ($Endpoint): $detalle" -ForegroundColor Yellow
+        Write-Host "Detalle guardado en $ApiLogFile" -ForegroundColor Yellow
+        "$(Get-Date -Format s)  ERROR $Endpoint : $detalle" | Out-File $ApiLogFile -Append -Encoding UTF8
     }
 }
 
@@ -446,6 +496,7 @@ function Invoke-Fase2 {
 
 function Invoke-Reporte {
     Write-Host "===== Reportar: no funciona en esta maquina =====" -ForegroundColor Cyan
+    Test-VirtualizacionBIOS
 
     $inv  = Obtener-Inventario
     $diag = Obtener-Diagnostico
@@ -474,11 +525,69 @@ function Invoke-Reporte {
 
 
 #################################################################################################
+# OPCION 3: REVERTIR CAMBIOS / REACTIVAR HYPER-V
+#################################################################################################
+
+# Deshace la opcion 1: reactiva VBS/HVCI/Credential Guard, las caracteristicas
+# de Hyper-V y el hipervisor en el arranque. Pensado para quien alterna
+# VirtualBox con Docker Desktop, WSL2 o Windows Sandbox.
+function Invoke-Revertir {
+    Write-Host "===== Revertir cambios / Reactivar Hyper-V =====" -ForegroundColor Cyan
+    Write-Host "Esto reactiva VBS/HVCI/Credential Guard, las caracteristicas de" -ForegroundColor Yellow
+    Write-Host "Hyper-V y el hipervisor en el arranque (rompe VirtualBox de nuevo" -ForegroundColor Yellow
+    Write-Host "mientras esten activos)." -ForegroundColor Yellow
+    $r = Read-Host "Continuar? (S = si / N = no)"
+    if ($r -notmatch '^[sS]') {
+        Write-Host "Cancelado." -ForegroundColor DarkGray
+        return
+    }
+
+    # --- Registro: revertir a valores activados ---
+    Set-RegistroSeguro "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity" 1
+    Set-RegistroSeguro "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" "Enabled" 1
+    Set-RegistroSeguro "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" "LsaCfgFlags" 1
+    Set-RegistroSeguro "HKLM:\SYSTEM\CurrentControlSet\Control\CI" "VulnerableDriverBlocklistEnable" 1
+
+    # --- Hipervisor en el arranque ---
+    try {
+        bcdedit /set hypervisorlaunchtype auto | Out-Null
+        Write-Host "OK  hypervisorlaunchtype = auto" -ForegroundColor Green
+    } catch {
+        Write-Host "ERROR bcdedit: $($_.Exception.Message)" -ForegroundColor Red
+    }
+
+    # --- Reactivar caracteristicas Hyper-V ---
+    $features = @("Microsoft-Hyper-V-All", "VirtualMachinePlatform", "HypervisorPlatform")
+    foreach ($f in $features) {
+        try {
+            $estado = Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction Stop
+            if ($estado.State -ne 'Enabled') {
+                Enable-WindowsOptionalFeature -Online -FeatureName $f -All -NoRestart -ErrorAction Stop | Out-Null
+                Write-Host "OK  caracteristica reactivada: $f" -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "Aviso: $f no se pudo reactivar ($($_.Exception.Message))" -ForegroundColor DarkYellow
+        }
+    }
+    if ($RemoverFeatures) {
+        Write-Host "Nota: se removieron archivos con -Remove al desactivar; si la" -ForegroundColor Yellow
+        Write-Host "reactivacion falla, ejecuta: DISM /Online /Cleanup-Image /RestoreHealth" -ForegroundColor Yellow
+    }
+
+    Write-Host "Listo. Se reiniciara para aplicar los cambios en 10s..." -ForegroundColor Cyan
+    Start-Sleep -Seconds 10
+    Restart-Computer -Force
+}
+
+
+#################################################################################################
 # LOGICA PRINCIPAL
 #################################################################################################
 
 # Flujo completo de la opcion 1: BitLocker (si aplica) -> Fase 1 -> reinicio -> Fase 2.
 function Invoke-QuitarTortuga {
+    Test-VirtualizacionBIOS
+
     # Consentimiento AHORA (antes de un posible reinicio); se guarda para la Fase 2.
     Guardar-Consentimiento (Pedir-Consentimiento)
 
@@ -504,6 +613,7 @@ Write-Host " $Autor" -ForegroundColor DarkGray
 Write-Host "==============================================================" -ForegroundColor Cyan
 Write-Host " 1) Quitar la tortuga (desactivar Hyper-V / VBS)"
 Write-Host " 2) Reportar: no funciona en esta maquina"
+Write-Host " 3) Revertir cambios / Reactivar Hyper-V"
 Write-Host " Q) Salir"
 Write-Host ""
 $opcion = Read-Host "Elige una opcion"
@@ -511,5 +621,6 @@ $opcion = Read-Host "Elige una opcion"
 switch ($opcion) {
     "1"     { Invoke-QuitarTortuga }
     "2"     { Invoke-Reporte }
+    "3"     { Invoke-Revertir }
     default { Write-Host "Saliendo." -ForegroundColor DarkGray }
 }
