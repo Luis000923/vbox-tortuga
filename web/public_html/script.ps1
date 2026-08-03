@@ -289,8 +289,15 @@ function Send-Api {
     try {
         $json = $Payload | ConvertTo-Json -Depth 6
         $uri  = "$($ApiBaseUrl.TrimEnd('/'))/api/$Endpoint"
-        Invoke-RestMethod -Uri $uri -Method Post -Body $json `
-            -ContentType "application/json" `
+        # PowerShell 5.1 codifica -Body <string> con la pagina de codigos de la
+        # consola (CP1252/OEM en Windows en espanol), NO en UTF-8, sin importar
+        # lo que diga -ContentType. Si el inventario trae acentos o simbolos
+        # (R)/(TM) (comun en nombres de CPU/placa/BIOS), el body llega corrupto
+        # y json_decode() del servidor lo rechaza con 400. Se fuerza UTF-8
+        # convirtiendo el JSON a bytes antes de enviarlo.
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+        Invoke-RestMethod -Uri $uri -Method Post -Body $bytes `
+            -ContentType "application/json; charset=utf-8" `
             -Headers @{ "X-API-Key" = $ApiKey } -TimeoutSec 20 | Out-Null
         Write-Host "Enviado a la API: $Endpoint" -ForegroundColor Green
         "$(Get-Date -Format s)  OK    $Endpoint" | Out-File $ApiLogFile -Append -Encoding UTF8
